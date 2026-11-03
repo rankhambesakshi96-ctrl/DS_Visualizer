@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS Visualizer</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#090d18;color:#edf3ff;
+ font-family:Segoe UI,Arial,sans-serif;
+}
+header{
+ padding:22px 5%;background:#111827;
+ border-bottom:1px solid #26334a;
+ display:flex;justify-content:space-between;align-items:center;
+}
+header h1{margin:0;color:#43d9ff}
+header span{color:#94a3b8;font-size:13px}
+main{max-width:1250px;margin:auto;padding:30px 18px}
+.intro h2{font-size:30px;margin-bottom:5px}
+.intro p{color:#94a3b8}
+.tabs{display:flex;flex-wrap:wrap;gap:9px;margin:25px 0}
+.tab{
+ padding:11px 17px;border-radius:9px;border:1px solid #34445f;
+ background:#151f32;color:#cbd5e1;cursor:pointer;
+}
+.tab.active{background:#123b50;border-color:#43d9ff;color:white}
+.layout{
+ display:grid;grid-template-columns:300px 1fr;gap:18px;
+}
+.panel{
+ background:#111827;border:1px solid #26334a;
+ border-radius:15px;padding:20px;min-height:390px;
+}
+h3{margin-top:0}
+label{display:block;margin:15px 0 6px;color:#aabbd2;font-size:13px}
+input,select{
+ width:100%;padding:12px;background:#0b1322;
+ border:1px solid #34445f;border-radius:8px;
+ color:white;font-size:15px;
+}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+button{font-weight:bold}
+.action{
+ padding:11px;border:0;border-radius:8px;
+ background:#43d9ff;color:#07111b;cursor:pointer;
+}
+.action.secondary{background:#27364d;color:white}
+.action.danger{background:#572536;color:#ffc2ce}
+.action:hover{filter:brightness(1.2)}
+.visual{
+ min-height:290px;display:flex;justify-content:center;
+ align-items:center;flex-wrap:wrap;gap:10px;
+ padding:25px 5px;overflow:auto;
+}
+.node{
+ min-width:55px;padding:15px;
+ text-align:center;border-radius:9px;
+ background:linear-gradient(135deg,#123b50,#29245a);
+ border:1px solid #43d9ff;font-weight:bold;
+ box-shadow:0 5px 18px #43d9ff22;
+}
+.highlight{border-color:#fbbf24;color:#fbbf24}
+.stack{
+ width:170px;min-height:260px;border:4px solid #64748b;
+ border-top:0;border-radius:0 0 10px 10px;
+ display:flex;flex-direction:column-reverse;
+ justify-content:flex-start;align-items:center;
+ gap:7px;padding:10px;
+}
+.stack .node{width:100%;padding:9px}
+.queue{
+ display:flex;align-items:center;gap:10px;
+ border-top:3px solid #64748b;
+ border-bottom:3px solid #64748b;padding:15px;
+}
+.arrow{color:#a78bfa;font-size:23px}
+.list{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.bars{
+ height:260px;width:100%;display:flex;
+ align-items:flex-end;justify-content:center;gap:7px;
+ border-bottom:2px solid #64748b;padding:10px;
+}
+.bar{
+ flex:1;max-width:55px;min-width:10px;
+ background:linear-gradient(#43d9ff,#6575e8);
+ border-radius:5px 5px 0 0;position:relative;
+ transition:height .2s;
+}
+.bar.active{background:#f97316}
+.bar.sorted{background:#10b981}
+.bar span{
+ position:absolute;top:-23px;left:50%;
+ transform:translateX(-50%);font-size:11px;
+}
+.tree{display:flex;flex-direction:column;gap:20px;width:100%}
+.level{display:flex;justify-content:center;gap:25px}
+.tree-node{
+ width:45px;height:45px;border-radius:50%;
+ background:#4c3287;border:1px solid #a78bfa;
+ display:grid;place-items:center;font-weight:bold;
+}
+#message{
+ background:#0b1322;border:1px solid #26334a;
+ padding:12px;border-radius:8px;color:#4ade80;
+ margin-top:15px;font-size:13px;
+}
+.muted{color:#94a3b8;font-size:13px}
+@media(max-width:750px){
+ .layout{grid-template-columns:1fr}
+ header{gap:10px;flex-wrap:wrap}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+ <h1>⚡ DS Visualizer</h1>
+ <span>INTERACTIVE LEARNING LAB</span>
+</header>
+
+<main>
+ <section class="intro">
+  <h2>Explore Data Structures <span style="color:#43d9ff">Visually.</span></h2>
+  <p>Learn, experiment and understand data structures through interactive operations.</p>
+ </section>
+
+ <div class="tabs">
+  <button class="tab active" onclick="show('stack',this)">Stack</button>
+  <button class="tab" onclick="show('queue',this)">Queue</button>
+  <button class="tab" onclick="show('list',this)">Linked List</button>
+  <button class="tab" onclick="show('sorting',this)">Sorting</button>
+  <button class="tab" onclick="show('searching',this)">Searching</button>
+  <button class="tab" onclick="show('tree',this)">Binary Tree</button>
+ </div>
+
+ <div class="layout">
+  <section class="panel">
+   <h3 id="controlTitle">Stack Operations</h3>
+   <p class="muted" id="description">LIFO – Last In, First Out</p>
+   <div id="controls"></div>
+   <div id="message">Ready! Choose an operation.</div>
+  </section>
+
+  <section class="panel">
+   <h3 id="visualTitle">Stack Visualization</h3>
+   <div class="visual" id="visual"></div>
+   <p class="muted" id="legend">Top = Latest Element</p>
+  </section>
+ </div>
+</main>
+
+<script>
+let current="stack";
+let stack=[],queue=[],list=[],array=[],tree=[];
+
+const $=id=>document.getElementById(id);
+
+function message(text,error=false){
+ $("message").style.color=error?"#fb7185":"#4ade80";
+ $("message").textContent=text;
+}
+
+function value(){
+ let v=$("value")?.value;
+ if(v===undefined||v.trim()==="")return null;
+ let n=Number(v);
+ return Number.isFinite(n)?n:null;
+}
+
+function show(type,button){
+ current=type;
+ document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+ button.classList.add("active");
+ setup();
+ render();
+}
+
+function setup(){
+ let controls="";
+ const titles={
+ stack:["Stack Operations","LIFO – Last In, First Out"],
+ queue:["Queue Operations","FIFO – First In, First Out"],
+ list:["Linked List Operations","Nodes connected using pointers"],
+ sorting:["Sorting Algorithms","Arrange elements in ascending order"],
+ searching:["Searching Algorithms","Find an element in an array"],
+ tree:["Binary Search Tree","Smaller values left, larger values right"]
+ };
+ $("controlTitle").textContent=titles[current][0];
+ $("description").textContent=titles[current][1];
+ $("visualTitle").textContent=titles[current][0];
+
+ if(["stack","queue","list","tree"].includes(current)){
+  controls=`
+   <label>Enter Number</label>
+   <input id="value" type="number" placeholder="Enter a value">
+  `;
+ }
+
+ if(current==="stack"){
+  controls+=buttons([
+   ["Push","push()"],
+   ["Pop","pop()","danger"],
+   ["Peek","peek()","secondary"],
+   ["Clear","clear()","secondary"]
+  ]);
+ }
+ if(current==="queue"){
+  controls+=buttons([
+   ["Enqueue","enqueue()"],
+   ["Dequeue","dequeue()","danger"],
+   ["Front","front()","secondary"],
+   ["Clear","clear()","secondary"]
+  ]);
+ }
+ if(current==="list"){
+  controls+=buttons([
+   ["Insert Start","insertStart()"],
+   ["Insert End","insertEnd()"],
+   ["Delete","deleteNode()","danger"],
+   ["Search","searchList()","secondary"],
+   ["Clear","clear()","secondary"]
+  ]);
+ }
+ if(current==="tree"){
+  controls+=buttons([
+   ["Insert","insertTree()"],
+   ["Search","searchTree()","secondary"],
+   ["Inorder","inorder()","secondary"],
+   ["Clear","clear()","danger"]
+  ]);
+ }
+ if(current==="sorting"){
+  controls+=`
+   <label>Algorithm</label>
+   <select id="algorithm">
+    <option value="bubble">Bubble Sort</option>
+    <option value="selection">Selection Sort</option>
+    <option value="insertion">Insertion Sort</option>
+   </select>
+   <label>Numbers (comma separated)</label>
+   <input id="arrayInput" value="8,3,6,1,9,2">
+  `+buttons([
+   ["Load Array","loadArray()","secondary"],
+   ["Visualize Sort","sortArray()"]
+  ]);
+ }
+ if(current==="searching"){
+  controls+=`
+   <label>Algorithm</label>
+   <select id="algorithm">
+    <option value="linear">Linear Search</option>
+    <option value="binary">Binary Search</option>
+   </select>
+   <label>Array (comma separated)</label>
+   <input id="arrayInput" value="2,4,6,8,10,12">
+   <label>Target Value</label>
+   <input id="target" type="number" value="8">
+  `+buttons([
+   ["Load Array","loadArray()","secondary"],
+   ["Search","runSearch()"]
+  ]);
+ }
+ $("controls").innerHTML=controls;
+}
+
+function buttons(items){
+ return `<div class="buttons">`+items.map(x=>
+ `<button class="action ${x[2]||''}" onclick="${x[1]}">${x[0]}</button>`
+ ).join("")+`</div>`;
+}
+
+function render(){
+ let v=$("visual");
+ v.innerHTML="";
+ if(current==="stack"){
+  v.innerHTML=`<div><p style="text-align:center;color:#fbbf24">TOP ↓</p>
+  <div class="stack">${stack.map((x,i)=>
+   `<div class="node ${i===stack.length-1?'highlight':''}">${x}</div>`
+  ).join("")||'<span class="muted">Empty Stack</span>'}</div>
+  <p class="muted" style="text-align:center">BOTTOM</p></div>`;
+ }
+ if(current==="queue"){
+  v.innerHTML=queue.length?
+   `<div><p class="muted">FRONT → REAR</p><div class="queue">`+
+   queue.map(x=>`<div class="node">${x}</div>`).join('<span class="arrow">→</span>')+
+   `</div></div>`:
+   '<p class="muted">Queue is empty</p>';
+ }
+ if(current==="list"){
+  v.innerHTML=list.length?
+   `<div class="list">`+list.map((x,i)=>
+   `<div class="node">${x}</div>${i<list.length-1?'<span class="arrow">→</span>':'<span class="arrow">→ NULL</span>'}`
+   ).join("")+`</div>`:
+   '<p class="muted">HEAD → NULL</p>';
+ }
+ if(current==="sorting"||current==="searching")drawArray();
+ if(current==="tree")drawTree();
+}
+
+function push(){
+ let x=value();
+ if(x===null)return message("Enter a valid number.",true);
+ if(stack.length>=8)return message("Stack Overflow!",true);
+ stack.push(x);render();message(x+" pushed onto stack.");
+}
+function pop(){
+ if(!stack.length)return message("Stack Underflow!",true);
+ let x=stack.pop();render();message(x+" popped from stack.");
+}
+function peek(){
+ if(!stack.length)return message("Stack is empty.",true);
+ message("Top element: "+stack.at(-1));
+}
+function enqueue(){
+ let x=value();
+ if(x===null)return message("Enter a valid number.",true);
+ if(queue.length>=8)return message("Queue is full!",true);
+ queue.push(x);render();message(x+" enqueued.");
+}
+function dequeue(){
+ if(!queue.length)return message("Queue is empty!",true);
+ let x=queue.shift();render();message(x+" dequeued.");
+}
+function front(){
+ if(!queue.length)return message("Queue is empty.",true);
+ message("Front element: "+queue[0]);
+}
+function insertStart(){
+ let x=value();if(x===null)return message("Enter a valid number.",true);
+ list.unshift(x);render();message("Inserted "+x+" at start.");
+}
+function insertEnd(){
+ let x=value();if(x===null)return message("Enter a valid number.",true);
+ list.push(x);render();message("Inserted "+x+" at end.");
+}
+function deleteNode(){
+ let x=value();if(x===null)return message("Enter a value.",true);
+ let i=list.indexOf(x);
+ if(i<0)return message("Value not found.",true);
+ list.splice(i,1);render();message("Deleted "+x+".");
+}
+function searchList(){
+ let x=value();if(x===null)return message("Enter a value.",true);
+ let i=list.indexOf(x);
+ message(i<0?"Value not found.":x+" found at position "+(i+1),i<0);
+}
+function clear(){
+ if(current==="stack")stack=[];
+ if(current==="queue")queue=[];
+ if(current==="list")list=[];
+ if(current==="tree")tree=[];
+ render();message("Cleared successfully.");
+}
+
+function readArray(){
+ let raw=$("arrayInput").value;
+ let a=raw.split(",").map(x=>Number(x.trim()));
+ return raw.trim()&&a.every(Number.isFinite)&&a.length<=16?a:null;
+}
+function loadArray(){
+ let a=readArray();
+ if(!a)return message("Enter up to 16 valid numbers.",true);
+ array=a;render();message("Array loaded successfully.");
+}
+function drawArray(active=[],sorted=[]){
+ $("visual").innerHTML=array.length?
+ `<div class="bars">`+array.map((x,i)=>
+ `<div class="bar ${active.includes(i)?'active':sorted.includes(i)?'sorted':''}"
+ style="height:${Math.max(5,Math.abs(x)/Math.max(1,...array.map(Math.abs))*90)}%">
+ <span>${x}</span></div>`
+ ).join("")+`</div>`:
+ '<p class="muted">Load an array to begin.</p>';
+}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function sortArray(){
+ let a=readArray();
+ if(!a)return message("Enter valid numbers first.",true);
+ array=a.slice();
+ let algo=$("algorithm").value;
+ message("Sorting in progress...");
+ if(algo==="bubble"){
+  for(let i=0;i<array.length;i++){
+   for(let j=0;j<array.length-i-1;j++){
+    drawArray([j,j+1]);await wait(300);
+    if(array[j]>array[j+1])
+     [array[j],array[j+1]]=[array[j+1],array[j]];
+   }
+  }
+ }
+ if(algo==="selection"){
+  for(let i=0;i<array.length;i++){
+   let min=i;
+   for(let j=i+1;j<array.length;j++){
+    drawArray([min,j]);await wait(300);
+    if(array[j]<array[min])min=j;
+   }
+   [array[i],array[min]]=[array[min],array[i]];
+  }
+ }
+ if(algo==="insertion"){
+  for(let i=1;i<array.length;i++){
+   let key=array[i],j=i-1;
+   while(j>=0&&array[j]>key){
+    drawArray([j,i]);await wait(300);
+    array[j+1]=array[j];j--;
+   }
+   array[j+1]=key;
+  }
+ }
+ drawArray([],array.map((_,i)=>i));
+ message("Sorting completed: "+array.join(", "));
+}
+
+async function runSearch(){
+ let a=readArray();
+ let target=Number($("target").value);
+ if(!a||$("target").value.trim()==="")
+  return message("Enter a valid array and target.",true);
+ array=a.slice();
+ let found=-1;
+ if($("algorithm").value==="linear"){
+  for(let i=0;i<array.length;i++){
+   drawArray([i]);await wait(450);
+   if(array[i]===target){found=i;break;}
+  }
+ }else{
+  array.sort((a,b)=>a-b);
+  let left=0,right=array.length-1;
+  while(left<=right){
+   let mid=Math.floor((left+right)/2);
+   drawArray([mid]);await wait(500);
+   if(array[mid]===target){found=mid;break;}
+   if(array[mid]<target)left=mid+1;
+   else right=mid-1;
+  }
+ }
+ drawArray(found>=0?[found]:[]);
+ message(found<0?target+" not found.":target+" found at index "+found,found<0);
+}
+
+function insertTree(){
+ let x=value();
+ if(x===null)return message("Enter a valid number.",true);
+ if(tree.includes(x))return message("Duplicate value!",true);
+ tree.push(x);drawTree();message(x+" inserted into tree.");
+}
+function searchTree(){
+ let x=value();if(x===null)return message("Enter a value.",true);
+ let found=tree.includes(x);
+ message(found?x+" found in tree.":x+" not found.",!found);
+}
+function inorder(){
+ if(!tree.length)return message("Tree is empty.",true);
+ message("Inorder traversal: "+tree.slice().sort((a,b)=>a-b).join(" → "));
+}
+function drawTree(){
+ if(!tree.length){$("visual").innerHTML='<p class="muted">Tree is empty. Insert a value.</p>';return;}
+ let root=null;
+ for(let x of tree){
+  if(!root)root={v:x,l:null,r:null};
+  else{
+   let n=root;
+   while(true){
+    if(x<n.v){
+     if(!n.l){n.l={v:x,l:null,r:null};break;}
+     n=n.l;
+    }else{
+     if(!n.r){n.r={v:x,l:null,r:null};break;}
+     n=n.r;
+    }
+   }
+  }
+ }
+ let levels=[];
+ function walk(n,d){
+  if(!n)return;
+  if(!levels[d])levels[d]=[];
+  levels[d].push(n.v);
+  walk(n.l,d+1);walk(n.r,d+1);
+ }
+ walk(root,0);
+ $("visual").innerHTML='<div class="tree">'+levels.map(level=>
+  '<div class="level">'+level.map(x=>`<div class="tree-node">${x}</div>`).join("")+'</div>'
+ ).join("")+'</div>';
+}
+
+setup();
+render();
+</script>
+</body>
+</html>
